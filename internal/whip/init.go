@@ -1,4 +1,4 @@
-package webrtc
+package whip
 
 import (
 	"encoding/json"
@@ -8,8 +8,11 @@ import (
 	"os"
 
 	"github.com/pion/interceptor"
+	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v3"
 )
+
+var api *webrtc.API
 
 func getPublicIP() string {
 	req, err := http.Get("http://ip-api.com/json/")
@@ -37,6 +40,15 @@ func getPublicIP() string {
 	return ip.Query
 }
 
+func populateInterceptorRegistry(interceptorRegistry *interceptor.Registry) error {
+	intervalPliFactory, err := intervalpli.NewReceiverInterceptor()
+	if err != nil {
+		return err
+	}
+	interceptorRegistry.Add(intervalPliFactory)
+	return nil
+}
+
 func populateMediaEngine(mediaEngine *webrtc.MediaEngine) error {
 	if err := mediaEngine.RegisterCodec(webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
@@ -60,6 +72,7 @@ func populateMediaEngine(mediaEngine *webrtc.MediaEngine) error {
 	}, webrtc.RTPCodecTypeAudio); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -79,17 +92,20 @@ func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 	}
 }
 
-type API struct{ *webrtc.API }
-
-func Init() *API {
+func Init() {
 	// Configure mediaEngine with support for VP8 and Opus
 	mediaEngine := &webrtc.MediaEngine{}
 	if err := populateMediaEngine(mediaEngine); err != nil {
 		panic(err)
 	}
 
-	// Set up interceptorRegistry and register it with mediaEngine
+	// Configure interceptorRegistry to send PLI every 3 seconds
 	interceptorRegistry := &interceptor.Registry{}
+	if err := populateInterceptorRegistry(interceptorRegistry); err != nil {
+		panic(err)
+	}
+
+	// Set up interceptorRegistry and register it with mediaEngine
 	if err := webrtc.RegisterDefaultInterceptors(mediaEngine, interceptorRegistry); err != nil {
 		log.Fatal(err)
 	}
@@ -100,13 +116,9 @@ func Init() *API {
 	populateSettingEngine(&settingEngine)
 
 	// Create the API object with configured mediaEngine, interceptorRegistry, settingEngine
-	api := &API{
-		webrtc.NewAPI(
-			webrtc.WithMediaEngine(mediaEngine),
-			webrtc.WithInterceptorRegistry(interceptorRegistry),
-			webrtc.WithSettingEngine(settingEngine),
-		),
-	}
-
-	return api
+	api = webrtc.NewAPI(
+		webrtc.WithMediaEngine(mediaEngine),
+		webrtc.WithInterceptorRegistry(interceptorRegistry),
+		webrtc.WithSettingEngine(settingEngine),
+	)
 }
