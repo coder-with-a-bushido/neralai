@@ -6,11 +6,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"coder-with-a-bushido.in/neralai/internal/whip"
 )
 
-var resourcesPath = "/resources/"
+var resourcePath = "/resources/"
 
 // Adds CORS headers to the response to allow everything
 func enableCors(res *http.ResponseWriter) {
@@ -26,11 +27,20 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 }
 
 func handleWHIPConn(res http.ResponseWriter, req *http.Request) {
+	log.Println("Request for new WHIP conn")
 	enableCors(&res)
 	//TODO: authentication with bearer token
 
+	switch req.Method {
+	case http.MethodPost:
+		break
+	// preflight request
+	case http.MethodOptions:
+		res.WriteHeader(http.StatusOK)
+		fmt.Fprint(res)
+		return
 	// Reserve other methods for future use according to `draft-ietf-wish-whip-01`
-	if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodPut {
+	default:
 		logHTTPError(res, "Unsupported Method", http.StatusMethodNotAllowed)
 		return
 	}
@@ -43,41 +53,54 @@ func handleWHIPConn(res http.ResponseWriter, req *http.Request) {
 
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
 	disconnect := make(chan struct{})
 
 	answerSDP, resourceID, err := whip.NewWHIPConnection(ctx, string(offerSDP), disconnect)
 	if err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		logHTTPError(res, err.Error(), http.StatusInternalServerError)
 		cancel()
 		return
 	}
 
+	res.Header().Set("Location", string("http://"+req.Host+resourcePath+resourceID))
+	res.Header().Set("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
-	res.Header().Add("Location", req.Host+resourcesPath+resourceID)
-	res.Header().Add("Content-Type", "application/sdp")
 	fmt.Fprint(res, answerSDP)
 
-	select {
-	case <-disconnect:
+	go func() {
+		<-disconnect
 		cancel()
-	}
+	}()
 }
 
-func handleWHIPClose(res http.ResponseWriter, req *http.Request) {
+func handleWHIPResource(res http.ResponseWriter, req *http.Request) {
 	enableCors(&res)
 	// TODO: authentication with bearer token
 
+	switch req.Method {
+	case http.MethodDelete:
+		break
+	// TODO: Trickle ICE(PATCH method) not supported
+	case http.MethodPatch:
+		logHTTPError(res, "Unsupported Method", http.StatusMethodNotAllowed)
+		return
+	// preflight request
+	case http.MethodOptions:
+		res.WriteHeader(http.StatusOK)
+		fmt.Fprint(res)
+		return
 	// Reserve other methods for future use according to `draft-ietf-wish-whip-01`
-	// Trickle ICE(PATCH method) not supported
-	if req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodPatch {
+	default:
 		logHTTPError(res, "Unsupported Method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	resourse := whip.GetResource(req.URL.Path)
-	resourse.Disconnect <- struct{}{}
+	resourceId := strings.TrimPrefix(req.URL.Path, resourcePath)
+	resourse := whip.GetResource(resourceId)
+	if resourse != nil {
+		resourse.Disconnect <- struct{}{}
+	}
 
 	res.WriteHeader(http.StatusOK)
 	fmt.Fprint(res)
@@ -87,12 +110,9 @@ func main() {
 	whip.Init()
 	mux := http.NewServeMux()
 	// for creating a new resource
-	mux.HandleFunc("/", handleWHIPConn)
-	// for closing an existing resource
-	mux.Handle(
-		resourcesPath,
-		http.StripPrefix(resourcesPath, http.HandlerFunc(handleWHIPClose)),
-	)
+	mux.HandleFunc("/start", handleWHIPConn)
+	// for operating on an existing resource
+	mux.HandleFunc(resourcePath, handleWHIPResource)
 
 	log.Println("Starting server at port 8080")
 

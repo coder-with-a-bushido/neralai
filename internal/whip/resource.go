@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -13,12 +14,15 @@ type Resource struct {
 	id             string
 	peerConnection *webrtc.PeerConnection
 	ctx            context.Context
-	Disconnect     chan<- struct{}
+
+	Disconnect   chan<- struct{}
+	AudioPackets <-chan *rtp.Packet
+	VideoPackets <-chan *rtp.Packet
 }
 
 var (
 	resourceMap     map[string]*Resource
-	resourceMapLock sync.Mutex
+	resourceMapLock sync.RWMutex
 )
 
 func addNewResource(resource *Resource) string {
@@ -29,7 +33,7 @@ func addNewResource(resource *Resource) string {
 	resource.id = resourceId
 
 	resourceMap[resourceId] = resource
-	resource.closeOnSignal()
+	go resource.closeOnSignal()
 	return resource.id
 }
 
@@ -44,13 +48,16 @@ func removeResource(resourceId string) {
 func (resource *Resource) closeOnSignal() {
 	<-resource.ctx.Done()
 	log.Println("Closing resource!")
+	if err := resource.peerConnection.Close(); err != nil {
+		log.Println(err)
+	}
 	removeResource(resource.id)
 }
 
 // get Resource mapped to resourceId
 func GetResource(resourceId string) *Resource {
-	resourceMapLock.Lock()
-	defer resourceMapLock.Unlock()
+	resourceMapLock.RLock()
+	defer resourceMapLock.RUnlock()
 
 	return resourceMap[resourceId]
 }

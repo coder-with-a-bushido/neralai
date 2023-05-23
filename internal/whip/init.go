@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
+	"github.com/pion/ice/v2"
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v3"
@@ -76,6 +78,8 @@ func populateMediaEngine(mediaEngine *webrtc.MediaEngine) error {
 	return nil
 }
 
+// set IP to be used in candidates instead of using ICE servers
+// Credits: Glimesh/broadcast-box on GH
 func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 	NAT1To1IPs := []string{}
 
@@ -89,6 +93,20 @@ func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 
 	if len(NAT1To1IPs) != 0 {
 		settingEngine.SetNAT1To1IPs(NAT1To1IPs, webrtc.ICECandidateTypeHost)
+	}
+
+	if os.Getenv("UDP_MUX_PORT") != "" {
+		udpPort, err := strconv.Atoi(os.Getenv("UDP_MUX_PORT"))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		udpMux, err := ice.NewMultiUDPMuxFromPort(udpPort)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		settingEngine.SetICEUDPMux(udpMux)
 	}
 }
 
@@ -121,4 +139,6 @@ func Init() {
 		webrtc.WithInterceptorRegistry(interceptorRegistry),
 		webrtc.WithSettingEngine(settingEngine),
 	)
+
+	resourceMap = make(map[string]*Resource)
 }
