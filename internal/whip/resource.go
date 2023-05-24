@@ -31,6 +31,7 @@ func addNewResource(resource *Resource) string {
 
 	resourceId := uuid.New().String()
 	resource.id = resourceId
+	log.Printf("New resource created: %s\n", resourceId)
 
 	resourceMap[resourceId] = resource
 	go resource.closeOnSignal()

@@ -60,6 +60,7 @@ func populateMediaEngine(mediaEngine *webrtc.MediaEngine) error {
 			SDPFmtpLine:  "",
 			RTCPFeedback: nil,
 		},
+		PayloadType: 96,
 	}, webrtc.RTPCodecTypeVideo); err != nil {
 		return err
 	}
@@ -71,6 +72,7 @@ func populateMediaEngine(mediaEngine *webrtc.MediaEngine) error {
 			SDPFmtpLine:  "",
 			RTCPFeedback: nil,
 		},
+		PayloadType: 111,
 	}, webrtc.RTPCodecTypeAudio); err != nil {
 		return err
 	}

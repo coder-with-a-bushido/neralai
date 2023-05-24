@@ -6,8 +6,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
+	"coder-with-a-bushido.in/neralai/internal/outputs"
 	"coder-with-a-bushido.in/neralai/internal/whip"
 )
 
@@ -56,7 +60,7 @@ func handleWHIPConn(res http.ResponseWriter, req *http.Request) {
 
 	disconnect := make(chan struct{})
 
-	answerSDP, resourceID, err := whip.NewWHIPConnection(ctx, string(offerSDP), disconnect)
+	answerSDP, resourceID, err := whip.NewConnection(ctx, string(offerSDP), disconnect)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusInternalServerError)
 		cancel()
@@ -67,6 +71,9 @@ func handleWHIPConn(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
 	fmt.Fprint(res, answerSDP)
+
+	outputOptions := outputs.Options{Recording: false, HLSStream: true}
+	outputs.StartFromWHIPResource(ctx, resourceID, outputOptions)
 
 	go func() {
 		<-disconnect
@@ -108,10 +115,11 @@ func handleWHIPResource(res http.ResponseWriter, req *http.Request) {
 
 func main() {
 	whip.Init()
+	outputs.Init()
 	mux := http.NewServeMux()
-	// for creating a new resource
+	// for creating a new WHIP resource
 	mux.HandleFunc("/start", handleWHIPConn)
-	// for operating on an existing resource
+	// for operating on an existing WHIP resource
 	mux.HandleFunc(resourcePath, handleWHIPResource)
 
 	log.Println("Starting server at port 8080")
@@ -120,4 +128,18 @@ func main() {
 		Handler: mux,
 		Addr:    ":8080",
 	}).ListenAndServe())
+	defer cleanup()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		cleanup()
+		os.Exit(0)
+	}()
+}
+
+func cleanup() {
+	whip.CleanUp()
+	outputs.CleanUp()
 }

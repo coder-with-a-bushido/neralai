@@ -9,7 +9,7 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-func NewWHIPConnection(ctx context.Context, offerSDP string, disconnect chan<- struct{}) (answerSDP string, resourceId string, err error) {
+func NewConnection(ctx context.Context, offerSDP string, disconnect chan<- struct{}) (answerSDP string, resourceId string, err error) {
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{
