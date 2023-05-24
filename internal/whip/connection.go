@@ -6,10 +6,11 @@ import (
 	"log"
 
 	"github.com/pion/rtp"
+	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v3"
 )
 
-func NewConnection(ctx context.Context, offerSDP string, disconnect chan<- struct{}) (answerSDP string, resourceId string, err error) {
+func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- struct{}) (answerSDP string, resourceId string, err error) {
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{
@@ -39,7 +40,15 @@ func NewConnection(ctx context.Context, offerSDP string, disconnect chan<- struc
 
 	// channels to pass the audio and video RTP packets
 	audioPackets := make(chan *rtp.Packet)
+	audio := ResourceMedia{
+		Available:  false,
+		RTPPackets: audioPackets,
+	}
 	videoPackets := make(chan *rtp.Packet)
+	video := ResourceMedia{
+		Available:  false,
+		RTPPackets: videoPackets,
+	}
 
 	peerConnection.OnTrack(
 		func(
@@ -78,7 +87,7 @@ func NewConnection(ctx context.Context, offerSDP string, disconnect chan<- struc
 	if err := peerConnection.SetRemoteDescription(
 		webrtc.SessionDescription{
 			Type: webrtc.SDPTypeOffer,
-			SDP:  string(offerSDP),
+			SDP:  string(offerSDPStr),
 		},
 	); err != nil {
 		return "", "", nil
@@ -97,6 +106,20 @@ func NewConnection(ctx context.Context, offerSDP string, disconnect chan<- struc
 		return "", "", err
 	}
 
+	// check if audio/video is available in the session
+	var offerSDP sdp.SessionDescription
+	if err = offerSDP.Unmarshal([]byte(offerSDPStr)); err != nil {
+		return "", "", err
+	}
+	for _, m := range offerSDP.MediaDescriptions {
+		switch m.MediaName.Media {
+		case "audio":
+			audio.Available = true
+		case "video":
+			video.Available = true
+		}
+	}
+
 	// when ICE gathering is complete
 	<-iceGatherComplete
 	// create a new `Resource` for this connection
@@ -105,8 +128,8 @@ func NewConnection(ctx context.Context, offerSDP string, disconnect chan<- struc
 			peerConnection: peerConnection,
 			ctx:            ctx,
 			Disconnect:     disconnect,
-			AudioPackets:   audioPackets,
-			VideoPackets:   videoPackets,
+			Audio:          audio,
+			Video:          video,
 		},
 	)
 	return answer.SDP, resourceId, nil

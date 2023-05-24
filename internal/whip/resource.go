@@ -15,9 +15,14 @@ type Resource struct {
 	peerConnection *webrtc.PeerConnection
 	ctx            context.Context
 
-	Disconnect   chan<- struct{}
-	AudioPackets <-chan *rtp.Packet
-	VideoPackets <-chan *rtp.Packet
+	Disconnect chan<- struct{}
+	Audio      ResourceMedia
+	Video      ResourceMedia
+}
+
+type ResourceMedia struct {
+	Available  bool
+	RTPPackets <-chan *rtp.Packet
 }
 
 var (

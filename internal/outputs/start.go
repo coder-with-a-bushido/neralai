@@ -28,18 +28,18 @@ func StartFromWHIPResource(ctx context.Context, resourceId string, outputOptions
 
 	var mediaConnections hls.MediaConnections
 	if outputOptions.HLSStream == true {
-		mediaConnections = hls.NewStream(ctx, resourceId, outputDir)
+		mediaConnections = hls.NewStream(ctx, resourceId, resource, outputDir)
 	}
 
 	go func() {
 		var audioPacket, videoPacket *rtp.Packet
 		for {
 			select {
-			case audioPacket = <-resource.AudioPackets:
+			case audioPacket = <-resource.Audio.RTPPackets:
 				if outputOptions.HLSStream == true {
 					mediaConnections.WriteAudio(audioPacket)
 				}
-			case videoPacket = <-resource.VideoPackets:
+			case videoPacket = <-resource.Video.RTPPackets:
 				if outputOptions.HLSStream == true {
 					mediaConnections.WriteVideo(videoPacket)
 				}
