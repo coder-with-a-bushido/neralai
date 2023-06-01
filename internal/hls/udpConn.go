@@ -82,7 +82,7 @@ func writeMedia(conn *net.UDPConn, rtpPacket *rtp.Packet) {
 
 func (mediaConnections *Stream) createOutputSDP(resourceId string) error {
 	file, err := os.Create(
-		fmt.Sprintf("%s/%s/connection.sdp", outputDir, resourceId),
+		fmt.Sprintf("%s/%s/connection.sdp", OutputDir, resourceId),
 	)
 	if err != nil {
 		return err

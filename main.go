@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"coder-with-a-bushido.in/neralai/internal/hls"
@@ -47,6 +48,8 @@ func main() {
 	r.Head("/stream/{resourceId}", r.MethodNotAllowedHandler())
 	r.Post("/stream/{resourceId}", r.MethodNotAllowedHandler())
 	r.Put("/stream/{resourceId}", r.MethodNotAllowedHandler())
+
+	r.Get("/stream/{resourceId}/hls/*", serveHLSFiles)
 
 	log.Println("Starting server at port 8080")
 	log.Fatal((&http.Server{
@@ -109,6 +112,17 @@ func stopStream(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w)
+}
+
+func serveHLSFiles(w http.ResponseWriter, r *http.Request) {
+	resourceId := chi.URLParam(r, "resourceId")
+	resourse := whip.GetResource(resourceId)
+	if resourse == nil {
+		writeBadRequest(w, "Invalid Resource ID")
+	}
+
+	filePath := "output" + strings.TrimPrefix(r.URL.Path, "/stream")
+	http.ServeFile(w, r, filePath)
 }
 
 func writeBadRequest(w http.ResponseWriter, errorStr string) {

@@ -43,14 +43,14 @@ func StreamFromWHIPResource(ctx context.Context, resourceId string) {
 }
 
 func createOutputResourceDir(resourceId string) {
-	if err := os.MkdirAll(fmt.Sprintf("%s/%s/hls", outputDir, resourceId), os.ModePerm); err != nil {
+	if err := os.MkdirAll(fmt.Sprintf("%s/%s/hls", OutputDir, resourceId), os.ModePerm); err != nil {
 		panic(err)
 	}
 }
 
 func cleanupOutputResourceDir(resourceId string) {
 	if err := os.RemoveAll(
-		fmt.Sprintf("%s/%s", outputDir, resourceId),
+		fmt.Sprintf("%s/%s", OutputDir, resourceId),
 	); err != nil {
 		panic(err)
 	}
