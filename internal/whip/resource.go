@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/google/uuid"
+	"github.com/aidarkhanov/nanoid"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v3"
 )
@@ -34,7 +34,7 @@ func addNewResource(resource *Resource) string {
 	resourceMapLock.Lock()
 	defer resourceMapLock.Unlock()
 
-	resourceId := uuid.New().String()
+	resourceId := nanoid.New()
 	resource.id = resourceId
 	log.Printf("New resource created: %s\n", resourceId)
 
