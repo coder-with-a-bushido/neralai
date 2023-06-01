@@ -8,123 +8,49 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"coder-with-a-bushido.in/neralai/internal/hls"
 	"coder-with-a-bushido.in/neralai/internal/whip"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/cors"
 )
-
-var streamPath = "/stream/"
-
-// Adds CORS headers to the response to allow everything
-func enableCors(res *http.ResponseWriter) {
-	(*res).Header().Set("Access-Control-Allow-Origin", "*")
-	(*res).Header().Set("Access-Control-Allow-Methods", "*")
-	(*res).Header().Set("Access-Control-Allow-Headers", "*")
-	(*res).Header().Set("Access-Control-Expose-Headers", "*")
-}
-
-func logHTTPError(w http.ResponseWriter, err string, code int) {
-	log.Println(err)
-	http.Error(w, err, code)
-}
-
-func handleWHIPConn(res http.ResponseWriter, req *http.Request) {
-	log.Println("Request for new WHIP conn")
-	enableCors(&res)
-	//TODO: authentication with bearer token
-
-	switch req.Method {
-	case http.MethodPost:
-		break
-	// preflight request
-	case http.MethodOptions:
-		res.WriteHeader(http.StatusOK)
-		fmt.Fprint(res)
-		return
-	// Reserve other methods for future use according to `draft-ietf-wish-whip-01`
-	default:
-		logHTTPError(res, "Unsupported Method", http.StatusMethodNotAllowed)
-		return
-	}
-
-	offerSDP, err := io.ReadAll(req.Body)
-	if err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
-	disconnect := make(chan struct{})
-
-	answerSDP, resourceID, err := whip.NewConnection(ctx, string(offerSDP), disconnect)
-	if err != nil {
-		logHTTPError(res, err.Error(), http.StatusInternalServerError)
-		cancel()
-		return
-	}
-
-	res.Header().Set("Location", string("http://"+req.Host+streamPath+resourceID))
-	res.Header().Set("Content-Type", "application/sdp")
-	res.WriteHeader(http.StatusCreated)
-	fmt.Fprint(res, answerSDP)
-
-	hls.StreamFromWHIPResource(ctx, resourceID)
-
-	go func() {
-		<-disconnect
-		cancel()
-	}()
-}
-
-func handleWHIPResource(res http.ResponseWriter, req *http.Request) {
-	enableCors(&res)
-	// TODO: authentication with bearer token
-
-	switch req.Method {
-	case http.MethodDelete:
-		break
-	// TODO: Trickle ICE(PATCH method) not supported
-	case http.MethodPatch:
-		logHTTPError(res, "Unsupported Method", http.StatusMethodNotAllowed)
-		return
-	// preflight request
-	case http.MethodOptions:
-		res.WriteHeader(http.StatusOK)
-		fmt.Fprint(res)
-		return
-	// Reserve other methods for future use according to `draft-ietf-wish-whip-01`
-	default:
-		logHTTPError(res, "Unsupported Method", http.StatusMethodNotAllowed)
-		return
-	}
-
-	resourceId := strings.TrimPrefix(req.URL.Path, streamPath)
-	resourse := whip.GetResource(resourceId)
-	if resourse != nil {
-		resourse.Disconnect <- struct{}{}
-	}
-
-	res.WriteHeader(http.StatusOK)
-	fmt.Fprint(res)
-}
 
 func main() {
 	whip.Init()
 	hls.Init()
-	mux := http.NewServeMux()
-	// for creating a new WHIP resource
-	mux.HandleFunc("/stream", handleWHIPConn)
-	// for operating on an existing WHIP resource
-	mux.HandleFunc(streamPath, handleWHIPResource)
+
+	r := chi.NewRouter()
+	// Adds CORS headers
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"*"},
+		AllowedHeaders: []string{"*"},
+		ExposedHeaders: []string{"*"},
+	}))
+
+	// WHIP endpoint - Start new stream
+	r.Post("/stream", startNewStream)
+	// Reserved WHIP endpoint methods for future
+	// ref: `draft-ietf-wish-whip-01`
+	r.Get("/stream", r.MethodNotAllowedHandler())
+	r.Head("/stream", r.MethodNotAllowedHandler())
+	r.Put("/stream", r.MethodNotAllowedHandler())
+
+	// WHIP resources endpoint - operations on existing stream
+	r.Delete("/stream/{resourceId}", stopStream)
+	// TODO: WHIP resources endpoint - Trickle ICE
+	r.Patch("/stream/{resourceId}", r.MethodNotAllowedHandler())
+	// Reserved WHIP resources endpoint methods for future
+	// ref: `draft-ietf-wish-whip-01`
+	r.Get("/stream/{resourceId}", r.MethodNotAllowedHandler())
+	r.Head("/stream/{resourceId}", r.MethodNotAllowedHandler())
+	r.Post("/stream/{resourceId}", r.MethodNotAllowedHandler())
+	r.Put("/stream/{resourceId}", r.MethodNotAllowedHandler())
 
 	log.Println("Starting server at port 8080")
-
 	log.Fatal((&http.Server{
-		Handler: mux,
+		Handler: r,
 		Addr:    ":8080",
 	}).ListenAndServe())
 	defer cleanup()
@@ -141,4 +67,57 @@ func main() {
 func cleanup() {
 	whip.CleanUp()
 	hls.CleanUp()
+}
+
+func startNewStream(w http.ResponseWriter, r *http.Request) {
+	offerSDP, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeBadRequest(w, err.Error())
+		return
+	}
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	disconnect := make(chan struct{})
+
+	answerSDP, resourceID, err := whip.NewConnection(ctx, string(offerSDP), disconnect)
+	if err != nil {
+		writeInternalServerError(w, err.Error())
+		cancel()
+		return
+	}
+
+	w.Header().Set("Location", string("http://"+r.Host+"/stream/"+resourceID))
+	w.Header().Set("Content-Type", "application/sdp")
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprint(w, answerSDP)
+
+	hls.StreamFromWHIPResource(ctx, resourceID)
+
+	go func() {
+		<-disconnect
+		cancel()
+	}()
+}
+
+func stopStream(w http.ResponseWriter, r *http.Request) {
+	resourceId := chi.URLParam(r, "resourceId")
+	resourse := whip.GetResource(resourceId)
+	if resourse != nil {
+		resourse.Disconnect <- struct{}{}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w)
+}
+
+func writeBadRequest(w http.ResponseWriter, errorStr string) {
+	writeHTTPError(w, errorStr, http.StatusBadRequest)
+}
+func writeInternalServerError(w http.ResponseWriter, errorStr string) {
+	writeHTTPError(w, errorStr, http.StatusInternalServerError)
+}
+func writeHTTPError(w http.ResponseWriter, err string, code int) {
+	log.Println(err)
+	http.Error(w, err, code)
 }

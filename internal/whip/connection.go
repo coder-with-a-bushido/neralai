@@ -78,7 +78,7 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 	peerConnection.OnICEConnectionStateChange(func(i webrtc.ICEConnectionState) {
 		// close connection on `ICEConnectionStateFailed`
 		if i == webrtc.ICEConnectionStateFailed {
-			log.Println("ICE connection state -> Failed")
+			log.Printf("ICE connection state -> Failed for resource: %s", resourceId)
 			disconnect <- struct{}{}
 		}
 	})

@@ -36,7 +36,7 @@ func StreamFromWHIPResource(ctx context.Context, resourceId string) {
 			case <-ctx.Done():
 				mediaConnections.closeUDPConns()
 				cleanupOutputResourceDir(resourceId)
-				break
+				return
 			}
 		}
 	}()

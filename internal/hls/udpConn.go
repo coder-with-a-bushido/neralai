@@ -3,7 +3,6 @@ package hls
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 
@@ -15,8 +14,8 @@ type udpMediaConn struct {
 	port int
 }
 type Stream struct {
-	audio *udpMediaConn
-	video *udpMediaConn
+	audio udpMediaConn
+	video udpMediaConn
 }
 
 func NewStream() Stream {
@@ -26,7 +25,7 @@ func NewStream() Stream {
 	return mediaConnections
 }
 
-func createUDPConn() *udpMediaConn {
+func createUDPConn() udpMediaConn {
 	var udpMediaConn udpMediaConn
 	freePort, err := getFreePortEven()
 	if err != nil {
@@ -46,13 +45,12 @@ func createUDPConn() *udpMediaConn {
 	if udpMediaConn.conn, err = net.DialUDP("udp", nil, raddr); err != nil {
 		panic(err)
 	}
-	log.Printf("Making UDP conn from %s to %s", udpMediaConn.conn.LocalAddr().String(), udpMediaConn.conn.RemoteAddr().String())
 
-	return &udpMediaConn
+	return udpMediaConn
 }
 
 func (mediaConnections *Stream) closeUDPConns() {
-	for _, udpMediaConn := range []*udpMediaConn{mediaConnections.audio, mediaConnections.video} {
+	for _, udpMediaConn := range []udpMediaConn{mediaConnections.audio, mediaConnections.video} {
 		if closeErr := udpMediaConn.conn.Close(); closeErr != nil {
 			panic(closeErr)
 		}

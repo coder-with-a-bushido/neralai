@@ -53,7 +53,7 @@ func removeResource(resourceId string) {
 // to be called on every newly created Resource
 func (resource *Resource) closeOnSignal() {
 	<-resource.ctx.Done()
-	log.Println("Closing resource!")
+	log.Printf("Closing resource: %s", resource.id)
 	if err := resource.peerConnection.Close(); err != nil {
 		log.Println(err)
 	}

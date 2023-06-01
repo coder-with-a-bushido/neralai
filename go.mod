@@ -4,6 +4,8 @@ go 1.20
 
 require (
 	github.com/aidarkhanov/nanoid v1.0.8
+	github.com/go-chi/chi v1.5.4
+	github.com/go-chi/cors v1.2.1
 	github.com/pion/ice/v2 v2.3.2
 	github.com/pion/interceptor v0.1.17
 	github.com/pion/rtp v1.7.13

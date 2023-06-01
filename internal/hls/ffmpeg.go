@@ -16,7 +16,6 @@ func startFFmpeg(ctx context.Context, resourceId string, resource *whip.Resource
 		args = append(args, "-map", "0:v")
 	}
 	if resource.Audio.Available {
-		log.Println("audio present")
 		args = append(args, "-map", "0:a")
 	}
 	if resource.Video.Available {
@@ -27,7 +26,6 @@ func startFFmpeg(ctx context.Context, resourceId string, resource *whip.Resource
 	}
 	args = append(args, "-f", "hls", "-hls_time", "4", "-hls_list_size", "10", "-hls_flags", "delete_segments+omit_endlist")
 	args = append(args, fmt.Sprintf("%s/%s/hls/stream.m3u8", outputDir, resourceId))
-	log.Println(args)
 
 	ffmpeg := exec.Command("ffmpeg", args...)
 
@@ -43,7 +41,7 @@ func startFFmpeg(ctx context.Context, resourceId string, resource *whip.Resource
 	if err := ffmpeg.Start(); err != nil {
 		panic(err)
 	}
-	log.Printf("Starting ffmpeg with pid: %d", ffmpeg.Process.Pid)
+	log.Printf("Starting HLS output for resource: %s", resourceId)
 
 	go func() {
 		<-ctx.Done()
