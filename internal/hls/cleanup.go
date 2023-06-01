@@ -1,4 +1,4 @@
-package outputs
+package hls
 
 import "os"
 

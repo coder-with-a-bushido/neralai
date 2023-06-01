@@ -11,11 +11,11 @@ import (
 	"strings"
 	"syscall"
 
-	"coder-with-a-bushido.in/neralai/internal/outputs"
+	"coder-with-a-bushido.in/neralai/internal/hls"
 	"coder-with-a-bushido.in/neralai/internal/whip"
 )
 
-var resourcePath = "/resources/"
+var streamPath = "/stream/"
 
 // Adds CORS headers to the response to allow everything
 func enableCors(res *http.ResponseWriter) {
@@ -67,13 +67,12 @@ func handleWHIPConn(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.Header().Set("Location", string("http://"+req.Host+resourcePath+resourceID))
+	res.Header().Set("Location", string("http://"+req.Host+streamPath+resourceID))
 	res.Header().Set("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
 	fmt.Fprint(res, answerSDP)
 
-	outputOptions := outputs.Options{Recording: false, HLSStream: true}
-	outputs.StartFromWHIPResource(ctx, resourceID, outputOptions)
+	hls.StreamFromWHIPResource(ctx, resourceID)
 
 	go func() {
 		<-disconnect
@@ -103,7 +102,7 @@ func handleWHIPResource(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	resourceId := strings.TrimPrefix(req.URL.Path, resourcePath)
+	resourceId := strings.TrimPrefix(req.URL.Path, streamPath)
 	resourse := whip.GetResource(resourceId)
 	if resourse != nil {
 		resourse.Disconnect <- struct{}{}
@@ -115,12 +114,12 @@ func handleWHIPResource(res http.ResponseWriter, req *http.Request) {
 
 func main() {
 	whip.Init()
-	outputs.Init()
+	hls.Init()
 	mux := http.NewServeMux()
 	// for creating a new WHIP resource
-	mux.HandleFunc("/start", handleWHIPConn)
+	mux.HandleFunc("/stream", handleWHIPConn)
 	// for operating on an existing WHIP resource
-	mux.HandleFunc(resourcePath, handleWHIPResource)
+	mux.HandleFunc(streamPath, handleWHIPResource)
 
 	log.Println("Starting server at port 8080")
 
@@ -141,5 +140,5 @@ func main() {
 
 func cleanup() {
 	whip.CleanUp()
-	outputs.CleanUp()
+	hls.CleanUp()
 }

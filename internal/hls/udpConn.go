@@ -14,13 +14,13 @@ type udpMediaConn struct {
 	conn *net.UDPConn
 	port int
 }
-type MediaConnections struct {
+type Stream struct {
 	audio *udpMediaConn
 	video *udpMediaConn
 }
 
-func NewMediaConnections() MediaConnections {
-	var mediaConnections MediaConnections
+func NewStream() Stream {
+	var mediaConnections Stream
 	mediaConnections.audio = createUDPConn()
 	mediaConnections.video = createUDPConn()
 	return mediaConnections
@@ -51,7 +51,7 @@ func createUDPConn() *udpMediaConn {
 	return &udpMediaConn
 }
 
-func (mediaConnections *MediaConnections) closeUDPConns() {
+func (mediaConnections *Stream) closeUDPConns() {
 	for _, udpMediaConn := range []*udpMediaConn{mediaConnections.audio, mediaConnections.video} {
 		if closeErr := udpMediaConn.conn.Close(); closeErr != nil {
 			panic(closeErr)
@@ -59,11 +59,11 @@ func (mediaConnections *MediaConnections) closeUDPConns() {
 	}
 }
 
-func (mediaConnections *MediaConnections) WriteAudio(audioPacket *rtp.Packet) {
+func (mediaConnections *Stream) WriteAudio(audioPacket *rtp.Packet) {
 	writeMedia(mediaConnections.audio.conn, audioPacket)
 }
 
-func (mediaConnections *MediaConnections) WriteVideo(videoPacket *rtp.Packet) {
+func (mediaConnections *Stream) WriteVideo(videoPacket *rtp.Packet) {
 	writeMedia(mediaConnections.video.conn, videoPacket)
 }
 
@@ -82,7 +82,7 @@ func writeMedia(conn *net.UDPConn, rtpPacket *rtp.Packet) {
 	}
 }
 
-func (mediaConnections *MediaConnections) createOutputSDP(outputDir, resourceId string) error {
+func (mediaConnections *Stream) createOutputSDP(resourceId string) error {
 	file, err := os.Create(
 		fmt.Sprintf("%s/%s/connection.sdp", outputDir, resourceId),
 	)
