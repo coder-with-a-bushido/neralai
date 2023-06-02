@@ -1,13 +1,11 @@
 package whip
 
 import (
-	"encoding/json"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 
+	"coder-with-a-bushido.in/neralai/internal/utils"
 	"github.com/pion/ice/v2"
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
@@ -15,32 +13,6 @@ import (
 )
 
 var api *webrtc.API
-
-func getPublicIP() string {
-	req, err := http.Get("http://ip-api.com/json/")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer req.Body.Close()
-
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ip := struct {
-		Query string
-	}{}
-	if err = json.Unmarshal(body, &ip); err != nil {
-		log.Fatal(err)
-	}
-
-	if ip.Query == "" {
-		log.Fatal("Query entry was not populated")
-	}
-
-	return ip.Query
-}
 
 func populateInterceptorRegistry(interceptorRegistry *interceptor.Registry) error {
 	intervalPliFactory, err := intervalpli.NewReceiverInterceptor()
@@ -86,7 +58,7 @@ func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 	NAT1To1IPs := []string{}
 
 	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
-		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
+		NAT1To1IPs = append(NAT1To1IPs, utils.GetPublicIP())
 	}
 
 	if os.Getenv("NAT_1_TO_1_IP") != "" {
@@ -143,4 +115,13 @@ func Init() {
 	)
 
 	resourceMap = make(map[string]*Resource)
+}
+
+func CleanUp() {
+	resourceMapLock.Lock()
+	defer resourceMapLock.Unlock()
+
+	for _, resource := range resourceMap {
+		resource.Disconnect <- struct{}{}
+	}
 }

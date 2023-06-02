@@ -1,23 +1,19 @@
 package hls
 
 import (
-	"fmt"
-	"os"
+	"coder-with-a-bushido.in/neralai/internal/utils"
 )
 
-var OutputDir string
-
 func Init() {
-	dir, err := os.Getwd()
-	if err != nil {
+	// check and create `output` dir if it doesn't exist
+	if err := utils.CreateDir(utils.GetOutputDir()); err != nil {
 		panic(err)
 	}
-	OutputDir = fmt.Sprintf("%s/output", dir)
+}
 
-	// check and create `output` dir if it doesn't exist
-	if _, err := os.Stat(OutputDir); os.IsNotExist(err) {
-		if err = os.Mkdir(OutputDir, os.ModePerm); err != nil {
-			panic(err)
-		}
+func CleanUp() {
+	// delete `output` directory
+	if err := utils.DeleteDir(utils.GetOutputDir()); err != nil {
+		panic(err)
 	}
 }

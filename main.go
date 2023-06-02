@@ -95,7 +95,7 @@ func startNewStream(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, answerSDP)
 
-	hls.StreamFromWHIPResource(ctx, resourceID)
+	hls.NewStreamFromWHIPResource(ctx, resourceID)
 
 	go func() {
 		<-disconnect
@@ -106,10 +106,12 @@ func startNewStream(w http.ResponseWriter, r *http.Request) {
 func stopStream(w http.ResponseWriter, r *http.Request) {
 	resourceId := chi.URLParam(r, "resourceId")
 	resourse := whip.GetResource(resourceId)
-	if resourse != nil {
-		resourse.Disconnect <- struct{}{}
+	if resourse == nil {
+		writeBadRequest(w, "Invalid Resource ID")
+		return
 	}
 
+	resourse.Disconnect <- struct{}{}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w)
 }
@@ -119,6 +121,7 @@ func serveHLSFiles(w http.ResponseWriter, r *http.Request) {
 	resourse := whip.GetResource(resourceId)
 	if resourse == nil {
 		writeBadRequest(w, "Invalid Resource ID")
+		return
 	}
 
 	filePath := "output" + strings.TrimPrefix(r.URL.Path, "/stream")

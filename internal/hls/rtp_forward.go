@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 
+	"coder-with-a-bushido.in/neralai/internal/utils"
 	"github.com/pion/rtp"
 )
 
@@ -13,13 +13,13 @@ type udpMediaConn struct {
 	conn *net.UDPConn
 	port int
 }
-type Stream struct {
+type rtpForward struct {
 	audio udpMediaConn
 	video udpMediaConn
 }
 
-func NewStream() Stream {
-	var mediaConnections Stream
+func startRTPForward() rtpForward {
+	var mediaConnections rtpForward
 	mediaConnections.audio = createUDPConn()
 	mediaConnections.video = createUDPConn()
 	return mediaConnections
@@ -27,7 +27,7 @@ func NewStream() Stream {
 
 func createUDPConn() udpMediaConn {
 	var udpMediaConn udpMediaConn
-	freePort, err := getFreePortEven()
+	freePort, err := utils.GetFreePortEven()
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +49,7 @@ func createUDPConn() udpMediaConn {
 	return udpMediaConn
 }
 
-func (mediaConnections *Stream) closeUDPConns() {
+func (mediaConnections *rtpForward) closeUDPConns() {
 	for _, udpMediaConn := range []udpMediaConn{mediaConnections.audio, mediaConnections.video} {
 		if closeErr := udpMediaConn.conn.Close(); closeErr != nil {
 			panic(closeErr)
@@ -57,11 +57,11 @@ func (mediaConnections *Stream) closeUDPConns() {
 	}
 }
 
-func (mediaConnections *Stream) WriteAudio(audioPacket *rtp.Packet) {
+func (mediaConnections *rtpForward) writeAudio(audioPacket *rtp.Packet) {
 	writeMedia(mediaConnections.audio.conn, audioPacket)
 }
 
-func (mediaConnections *Stream) WriteVideo(videoPacket *rtp.Packet) {
+func (mediaConnections *rtpForward) writeVideo(videoPacket *rtp.Packet) {
 	writeMedia(mediaConnections.video.conn, videoPacket)
 }
 
@@ -78,27 +78,4 @@ func writeMedia(conn *net.UDPConn, rtpPacket *rtp.Packet) {
 			panic(writeErr)
 		}
 	}
-}
-
-func (mediaConnections *Stream) createOutputSDP(resourceId string) error {
-	file, err := os.Create(
-		fmt.Sprintf("%s/%s/connection.sdp", OutputDir, resourceId),
-	)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	sdpContent := fmt.Sprintf("v=0\no=- 0 0 IN IP4 127.0.0.1\ns=Neralai\nc=IN IP4 127.0.0.1\nt=0 0\nm=audio %d RTP/AVP 111\na=rtpmap:111 OPUS/48000/2\nm=video %d RTP/AVP 96\na=rtpmap:96 VP8/90000",
-		mediaConnections.audio.port,
-		mediaConnections.video.port,
-	)
-	if _, err = file.WriteString(sdpContent); err != nil {
-		return err
-	}
-
-	if err = file.Sync(); err != nil {
-		return err
-	}
-	return nil
 }

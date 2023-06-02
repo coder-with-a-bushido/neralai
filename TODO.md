@@ -1,0 +1,14 @@
+- comments to understand everything-literally
+- check if cleanup coverage is good
+- dockerize
+- README with illustrations
+- add frontend for demo
+- add tests
+- add bearer token authentication
+- support for Trickle ICE in WHIP
+- add RTCP support for ffmpeg with pion/dtls and pion/rtcp
+- improve video quality
+- support for RTMP
+- support for h264,vp9 video input
+- limit CORS config from '\*'
+- CDN for HLS files?

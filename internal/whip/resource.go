@@ -16,11 +16,11 @@ type Resource struct {
 	ctx            context.Context
 
 	Disconnect chan<- struct{}
-	Audio      ResourceMedia
-	Video      ResourceMedia
+	Audio      resourceMedia
+	Video      resourceMedia
 }
 
-type ResourceMedia struct {
+type resourceMedia struct {
 	Available  bool
 	RTPPackets <-chan *rtp.Packet
 }
@@ -29,6 +29,18 @@ var (
 	resourceMap     map[string]*Resource
 	resourceMapLock sync.RWMutex
 )
+
+// get Resource mapped to resourceId
+func GetResource(resourceId string) *Resource {
+	resourceMapLock.RLock()
+	defer resourceMapLock.RUnlock()
+
+	resource, exists := resourceMap[resourceId]
+	if exists {
+		return resource
+	}
+	return nil
+}
 
 func addNewResource(resource *Resource) string {
 	resourceMapLock.Lock()
@@ -39,7 +51,7 @@ func addNewResource(resource *Resource) string {
 	log.Printf("New resource created: %s\n", resourceId)
 
 	resourceMap[resourceId] = resource
-	go resource.closeOnSignal()
+	go resource.closeOnCtxCancel()
 	return resource.id
 }
 
@@ -51,19 +63,11 @@ func removeResource(resourceId string) {
 }
 
 // to be called on every newly created Resource
-func (resource *Resource) closeOnSignal() {
+func (resource *Resource) closeOnCtxCancel() {
 	<-resource.ctx.Done()
 	log.Printf("Closing resource: %s", resource.id)
 	if err := resource.peerConnection.Close(); err != nil {
 		log.Println(err)
 	}
 	removeResource(resource.id)
-}
-
-// get Resource mapped to resourceId
-func GetResource(resourceId string) *Resource {
-	resourceMapLock.RLock()
-	defer resourceMapLock.RUnlock()
-
-	return resourceMap[resourceId]
 }

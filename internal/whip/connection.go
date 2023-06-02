@@ -40,12 +40,12 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 
 	// channels to pass the audio and video RTP packets
 	audioPackets := make(chan *rtp.Packet)
-	audio := ResourceMedia{
+	audio := resourceMedia{
 		Available:  false,
 		RTPPackets: audioPackets,
 	}
 	videoPackets := make(chan *rtp.Packet)
-	video := ResourceMedia{
+	video := resourceMedia{
 		Available:  false,
 		RTPPackets: videoPackets,
 	}
