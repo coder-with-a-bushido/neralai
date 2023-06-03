@@ -65,11 +65,15 @@
   </button>
   {#if goLive}
     <div id="linkContainer">
-      <a href="/stream/{resourceId}" target="_blank">Watch here</a>
-      <div class="copyLink">
-        <input type="text" bind:value={streamLink} readonly />
-        <button use:copy={streamLink}>Copy link</button>
-      </div>
+      {#await new Promise((res) => setTimeout(res, 4000))}
+        <p>Loading stream...</p>
+      {:then val}
+        <a href="/stream/{resourceId}" target="_blank">Watch here</a>
+        <div class="copyLink">
+          <input type="text" bind:value={streamLink} readonly />
+          <button use:copy={streamLink}>Copy link</button>
+        </div>
+      {/await}
     </div>
   {/if}
 </div>
