@@ -1,4 +1,5 @@
-- README with illustrations
+- better output quality
+- improve README
 - dockerize
 - add tests
 - add bearer token authentication
