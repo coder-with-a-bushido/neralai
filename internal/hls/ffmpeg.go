@@ -19,7 +19,7 @@ func startFFmpeg(ctx context.Context, resourceId string, resource *whip.Resource
 		args = append(args, "-map", "0:a")
 	}
 	if resource.Video.Available {
-		args = append(args, "-c:v", "libx264", "-crf", "21", "-preset", "veryfast", "-r", "24")
+		args = append(args, "-c:v", "libx264", "-crf", "23", "-preset", "veryfast", "-g", "60", "-sc_threshold", "0", "-b:v", "8000k", "-maxrate", "8000k", "-bufsize", "8000k")
 	}
 	if resource.Audio.Available {
 		args = append(args, "-c:a", "aac", "-b:a", "128k", "-ac", "2")
