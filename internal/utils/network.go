@@ -2,10 +2,14 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+
+	"github.com/pion/rtp"
 )
 
 func GetPublicIP() string {
@@ -51,4 +55,42 @@ func GetFreePortEven() (port int, err error) {
 		port = l.Addr().(*net.TCPAddr).Port
 	}
 	return
+}
+
+func NewLocalUDPConn(port int) (*net.UDPConn, error) {
+	// Create remote addr with random port
+	raddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		return nil, err
+	}
+
+	// Dial udp
+	conn, err := net.DialUDP("udp", nil, raddr)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
+}
+
+func CloseLocalUDPConn(conn *net.UDPConn) error {
+	if err := conn.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func WriteRTPPacketToUDPConn(conn *net.UDPConn, rtpPacket *rtp.Packet) error {
+	b := make([]byte, 1500)
+	n, err := rtpPacket.MarshalTo(b)
+	if err != nil {
+		return err
+	}
+
+	if _, writeErr := conn.Write(b[:n]); writeErr != nil {
+		var opError *net.OpError
+		if errors.As(writeErr, &opError) && opError.Err.Error() != "write: connection refused" {
+			return writeErr
+		}
+	}
+	return nil
 }

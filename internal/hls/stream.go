@@ -39,7 +39,7 @@ func NewStreamFromWHIPResource(ctx context.Context, resourceId string) {
 			case videoPacket = <-resource.Video.RTPPackets:
 				rtpForward.writeVideo(videoPacket)
 			case <-ctx.Done():
-				rtpForward.closeUDPConns()
+				rtpForward.endRTPForward()
 				utils.DeleteDir(fmt.Sprintf("%s/%s", utils.GetOutputDir(), resourceId))
 				return
 			}
