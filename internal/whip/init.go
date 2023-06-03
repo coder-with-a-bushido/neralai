@@ -96,9 +96,7 @@ func populateMediaEngine(mediaEngine *webrtc.MediaEngine) error {
 func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 	NAT1To1IPs := []string{}
 
-	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
-		NAT1To1IPs = append(NAT1To1IPs, utils.GetPublicIP())
-	}
+	NAT1To1IPs = append(NAT1To1IPs, utils.GetPublicIP())
 
 	if os.Getenv("NAT_1_TO_1_IP") != "" {
 		NAT1To1IPs = append(NAT1To1IPs, os.Getenv("NAT_1_TO_1_IP"))
