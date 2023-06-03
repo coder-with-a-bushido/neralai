@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"coder-with-a-bushido.in/neralai/internal/utils"
+	"github.com/coder-with-a-bushido/neralai/internal/utils"
 	"github.com/pion/ice/v2"
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"

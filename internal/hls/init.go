@@ -1,7 +1,7 @@
 package hls
 
 import (
-	"coder-with-a-bushido.in/neralai/internal/utils"
+	"github.com/coder-with-a-bushido/neralai/internal/utils"
 )
 
 func Init() {

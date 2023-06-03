@@ -11,8 +11,8 @@ import (
 	"strings"
 	"syscall"
 
-	"coder-with-a-bushido.in/neralai/internal/hls"
-	"coder-with-a-bushido.in/neralai/internal/whip"
+	"github.com/coder-with-a-bushido/neralai/internal/hls"
+	"github.com/coder-with-a-bushido/neralai/internal/whip"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 )

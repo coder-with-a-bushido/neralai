@@ -5,9 +5,9 @@
 </p>
   <p>
      <a href="https://github.com/coder-with-a-bushido/neralai/stargazers/">
-        <img src="https://img.shields.io/github/stars/coder-with-a-bushido/neralai?style=social&label=Star&maxAge=2592000"/>
+        <img src="https://img.shields.io/github/stars/coder-with-a-bushido/neralai?style=social"/>
      </a> 
-     <a href="https://goreportcard.com/report/coder-with-a-bushido.in/neralai"><img src="https://goreportcard.com/badge/coder-with-a-bushido.in/neralai" alt="Go Report Card">
+     <a href="https://goreportcard.com/report/github.com/coder-with-a-bushido/neralai"><img src="https://goreportcard.com/badge/github.com/coder-with-a-bushido/neralai" alt="Go Report Card">
      </a>
      <a href="https://github.com/coder-with-a-bushido/neralai/blob/main/LICENSE">
        <img src="https://img.shields.io/badge/license-MIT-blue" />

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"coder-with-a-bushido.in/neralai/internal/utils"
-	"coder-with-a-bushido.in/neralai/internal/whip"
+	"github.com/coder-with-a-bushido/neralai/internal/utils"
+	"github.com/coder-with-a-bushido/neralai/internal/whip"
 	"github.com/pion/rtp"
 )
 

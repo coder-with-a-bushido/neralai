@@ -1,4 +1,4 @@
-module coder-with-a-bushido.in/neralai
+module github.com/coder-with-a-bushido/neralai
 
 go 1.20
 

@@ -6,8 +6,8 @@ import (
 	"log"
 	"os/exec"
 
-	"coder-with-a-bushido.in/neralai/internal/utils"
-	"coder-with-a-bushido.in/neralai/internal/whip"
+	"github.com/coder-with-a-bushido/neralai/internal/utils"
+	"github.com/coder-with-a-bushido/neralai/internal/whip"
 )
 
 // Run `ffmpeg“ command that gets input from a SDP file and creates HLS output.
