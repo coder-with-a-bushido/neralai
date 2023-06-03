@@ -16,6 +16,7 @@ type rtpForward struct {
 	video udpMediaConn
 }
 
+// Prepare UDP connections for forwarding RTP packets to ffmpeg.
 func startRTPForward() rtpForward {
 	var rtpForward rtpForward
 	var err error
@@ -33,6 +34,7 @@ func startRTPForward() rtpForward {
 	return rtpForward
 }
 
+// Close the UDP connections used for forwarding RTP packets.
 func (rtpForward *rtpForward) endRTPForward() {
 	if err := utils.CloseLocalUDPConn(rtpForward.audio.conn); err != nil {
 		panic(err)
@@ -41,12 +43,14 @@ func (rtpForward *rtpForward) endRTPForward() {
 	}
 }
 
+// Forward audio RTP packet.
 func (rtpForward *rtpForward) writeAudio(audioPacket *rtp.Packet) {
 	if err := utils.WriteRTPPacketToUDPConn(rtpForward.audio.conn, audioPacket); err != nil {
 		panic(err)
 	}
 }
 
+// Forward video RTP packet.
 func (rtpForward *rtpForward) writeVideo(videoPacket *rtp.Packet) {
 	if err := utils.WriteRTPPacketToUDPConn(rtpForward.video.conn, videoPacket); err != nil {
 		panic(err)

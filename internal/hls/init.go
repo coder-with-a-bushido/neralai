@@ -5,14 +5,14 @@ import (
 )
 
 func Init() {
-	// check and create `output` dir if it doesn't exist
+	// Create `output` dir
 	if err := utils.CreateDir(utils.GetOutputDir()); err != nil {
 		panic(err)
 	}
 }
 
 func CleanUp() {
-	// delete `output` directory
+	// Delete `output` directory
 	if err := utils.DeleteDir(utils.GetOutputDir()); err != nil {
 		panic(err)
 	}

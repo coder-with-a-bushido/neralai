@@ -10,7 +10,9 @@ import (
 	"coder-with-a-bushido.in/neralai/internal/whip"
 )
 
+// Run `ffmpeg“ command that gets input from a SDP file and creates HLS output.
 func startFFmpeg(ctx context.Context, resourceId string, resource *whip.Resource) {
+	// Construct the ffmpeg command arguments
 	args := []string{"-protocol_whitelist", "file,udp,rtp", "-i", fmt.Sprintf("%s/%s/connection.sdp", utils.GetOutputDir(), resourceId)}
 	if resource.Video.Available {
 		args = append(args, "-map", "0:v")
@@ -29,13 +31,15 @@ func startFFmpeg(ctx context.Context, resourceId string, resource *whip.Resource
 
 	ffmpeg := exec.Command("ffmpeg", args...)
 
-	logFile, err := utils.NewLogFile(fmt.Sprintf("%s/%s/ffmpeg_log.txt", utils.GetOutputDir(), resourceId))
+	// Log file for the ffmpeg command
+	logFile, err := utils.NewFile(fmt.Sprintf("%s/%s/ffmpeg_log.txt", utils.GetOutputDir(), resourceId))
 	if err != nil {
 		panic(err)
 	}
 	defer logFile.Close()
 	ffmpeg.Stderr = logFile
 
+	// Start the command
 	if err := ffmpeg.Start(); err != nil {
 		panic(err)
 	}

@@ -12,6 +12,8 @@ import (
 	"github.com/pion/rtp"
 )
 
+// Get Public IP address.
+// credits: https://github.com/Glimesh/broadcast-box
 func GetPublicIP() string {
 	req, err := http.Get("http://ip-api.com/json/")
 	if err != nil {
@@ -34,12 +36,15 @@ func GetPublicIP() string {
 	if ip.Query == "" {
 		log.Fatal("Query entry was not populated")
 	}
-
 	return ip.Query
 }
 
-// find a even-numbered free port
-// refer: https://www.ietf.org/rfc/rfc2327.txt#:~:text=For%20RTP%20compliance%20it%20should%20be%20an%20even%0A%20%20%20%20%20number.
+// Find and return a even-numbered free port. Port number should be even for
+// RTP compliance; a corresponding RTCP connection will try to bind to the next odd
+// numbered port.
+
+// ref: https://www.ietf.org/rfc/rfc2327.txt#:~:text=For%20RTP%20compliance%20it%20should%20be%20an%20even%0A%20%20%20%20%20number.
+// credits: https://gist.github.com/sevkin/96bdae9274465b2d09191384f86ef39d
 func GetFreePortEven() (port int, err error) {
 	for port == 0 || port%2 == 1 {
 		var addr *net.TCPAddr
@@ -57,14 +62,15 @@ func GetFreePortEven() (port int, err error) {
 	return
 }
 
+// Dial port for UDP connection and return it.
 func NewLocalUDPConn(port int) (*net.UDPConn, error) {
-	// Create remote addr with random port
+	// Create remote address with localhost and port
 	raddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return nil, err
 	}
 
-	// Dial udp
+	// Dial UDP
 	conn, err := net.DialUDP("udp", nil, raddr)
 	if err != nil {
 		return nil, err
@@ -72,6 +78,7 @@ func NewLocalUDPConn(port int) (*net.UDPConn, error) {
 	return conn, nil
 }
 
+// Close UDP connection.
 func CloseLocalUDPConn(conn *net.UDPConn) error {
 	if err := conn.Close(); err != nil {
 		return err
@@ -79,6 +86,7 @@ func CloseLocalUDPConn(conn *net.UDPConn) error {
 	return nil
 }
 
+// Write RTP packets to UDP connection.
 func WriteRTPPacketToUDPConn(conn *net.UDPConn, rtpPacket *rtp.Packet) error {
 	b := make([]byte, 1500)
 	n, err := rtpPacket.MarshalTo(b)

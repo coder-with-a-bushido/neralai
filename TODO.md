@@ -1,11 +1,9 @@
-- comments to understand everything-literally
-- check if cleanup coverage is good
-- dockerize
 - README with illustrations
+- dockerize
 - add tests
 - add bearer token authentication
 - support for Trickle ICE in WHIP
-- add RTCP support for ffmpeg with pion/dtls and pion/rtcp
+- read RTCP feedback for ffmpeg using pion/dtls and pion/rtcp
 - support for RTMP
 - support for h264,vp9 video input
 - CDN for HLS files?

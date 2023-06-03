@@ -10,23 +10,17 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
+// Start new WHIP connection and create an associated `Resource` for it.
 func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- struct{}) (answerSDP string, resourceId string, err error) {
-	config := webrtc.Configuration{
-		ICEServers: []webrtc.ICEServer{
-			{
-				// URLs: []string{
-				// 	"stun:turn.eyevinn.technology:3478",
-				// 	"turn:turn.eyevinn.technology:3478",
-				// },
-			},
-		},
-	}
+	// New peer connection
+	config := webrtc.Configuration{}
 	peerConnection, err := api.NewPeerConnection(config)
 	if err != nil {
 		return "", "", nil
 	}
 
-	// make answer SDP use "recvonly" attribute
+	// Make answer SDP use "recvonly" attribute
+	// ref: `draft-ietf-wish-whip-01`
 	if _, err = peerConnection.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo, webrtc.RTPTransceiverInit{
 		Direction: webrtc.RTPTransceiverDirectionRecvonly,
 	}); err != nil {
@@ -38,7 +32,7 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 		return "", "", nil
 	}
 
-	// channels to pass the audio and video RTP packets
+	// Channels to forward the audio and video RTP packets
 	audioPackets := make(chan *rtp.Packet)
 	audio := resourceMedia{
 		Available:  false,
@@ -76,14 +70,14 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 		})
 
 	peerConnection.OnICEConnectionStateChange(func(i webrtc.ICEConnectionState) {
-		// close connection on `ICEConnectionStateFailed`
+		// Close connection on `ICEConnectionStateFailed`
 		if i == webrtc.ICEConnectionStateFailed {
 			log.Printf("ICE connection state -> Failed for resource: %s", resourceId)
 			disconnect <- struct{}{}
 		}
 	})
 
-	// set remote description from `offerSDP`
+	// Set remote description from `offerSDP`
 	if err := peerConnection.SetRemoteDescription(
 		webrtc.SessionDescription{
 			Type: webrtc.SDPTypeOffer,
@@ -93,7 +87,7 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 		return "", "", nil
 	}
 
-	// Gather all ICE candidates beforehand
+	// Gather all ICE candidates beforehand,
 	// since we don't support Trickle ICE
 	iceGatherComplete := webrtc.GatheringCompletePromise(peerConnection)
 
@@ -120,9 +114,9 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 		}
 	}
 
-	// when ICE gathering is complete
+	// When ICE gathering is complete,
 	<-iceGatherComplete
-	// create a new `Resource` for this connection
+	// create a new WHIP `Resource` for this connection
 	resourceId = addNewResource(
 		&Resource{
 			peerConnection: peerConnection,

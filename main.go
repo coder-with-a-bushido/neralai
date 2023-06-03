@@ -49,6 +49,7 @@ func main() {
 	r.Post("/stream/{resourceId}", r.MethodNotAllowedHandler())
 	r.Put("/stream/{resourceId}", r.MethodNotAllowedHandler())
 
+	// Serve HLS files for resources from the output directory
 	r.Get("/stream/{resourceId}/hls/*", serveHLSFiles)
 
 	log.Println("Starting server at port 8080")
@@ -58,6 +59,7 @@ func main() {
 	}).ListenAndServe())
 	defer cleanup()
 
+	// Cleanup on exit
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {

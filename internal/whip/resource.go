@@ -30,7 +30,6 @@ var (
 	resourceMapLock sync.RWMutex
 )
 
-// get Resource mapped to resourceId
 func GetResource(resourceId string) *Resource {
 	resourceMapLock.RLock()
 	defer resourceMapLock.RUnlock()
@@ -62,7 +61,8 @@ func removeResource(resourceId string) {
 	delete(resourceMap, resourceId)
 }
 
-// to be called on every newly created Resource
+// Close WHIP resource and end connection on context cancel.
+// Has to be called right after creating a new `Resource`
 func (resource *Resource) closeOnCtxCancel() {
 	<-resource.ctx.Done()
 	log.Printf("Closing resource: %s", resource.id)

@@ -14,6 +14,46 @@ import (
 
 var api *webrtc.API
 
+func Init() {
+	// Configure mediaEngine with support for VP8 and Opus
+	mediaEngine := &webrtc.MediaEngine{}
+	if err := populateMediaEngine(mediaEngine); err != nil {
+		panic(err)
+	}
+	// Configure interceptorRegistry to send PLI every 3 seconds
+	interceptorRegistry := &interceptor.Registry{}
+	if err := populateInterceptorRegistry(interceptorRegistry); err != nil {
+		panic(err)
+	}
+	// Set up interceptorRegistry and register it with mediaEngine
+	if err := webrtc.RegisterDefaultInterceptors(mediaEngine, interceptorRegistry); err != nil {
+		log.Fatal(err)
+	}
+	// Set IP to be used in candidates instead of using ICE servers
+	// ref: https://pkg.go.dev/github.com/pion/webrtc/v3@v3.1.60#SettingEngine.SetNAT1To1IPs
+	settingEngine := webrtc.SettingEngine{}
+	populateSettingEngine(&settingEngine)
+
+	// Create the API object with configured mediaEngine, interceptorRegistry, settingEngine
+	api = webrtc.NewAPI(
+		webrtc.WithMediaEngine(mediaEngine),
+		webrtc.WithInterceptorRegistry(interceptorRegistry),
+		webrtc.WithSettingEngine(settingEngine),
+	)
+
+	resourceMap = make(map[string]*Resource)
+}
+
+func CleanUp() {
+	resourceMapLock.Lock()
+	defer resourceMapLock.Unlock()
+
+	// Delete all WHIP resources
+	for _, resource := range resourceMap {
+		resource.Disconnect <- struct{}{}
+	}
+}
+
 func populateInterceptorRegistry(interceptorRegistry *interceptor.Registry) error {
 	intervalPliFactory, err := intervalpli.NewReceiverInterceptor()
 	if err != nil {
@@ -52,8 +92,7 @@ func populateMediaEngine(mediaEngine *webrtc.MediaEngine) error {
 	return nil
 }
 
-// set IP to be used in candidates instead of using ICE servers
-// Credits: Glimesh/broadcast-box on GH
+// credits: https://github.com/Glimesh/broadcast-box
 func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 	NAT1To1IPs := []string{}
 
@@ -81,47 +120,5 @@ func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 		}
 
 		settingEngine.SetICEUDPMux(udpMux)
-	}
-}
-
-func Init() {
-	// Configure mediaEngine with support for VP8 and Opus
-	mediaEngine := &webrtc.MediaEngine{}
-	if err := populateMediaEngine(mediaEngine); err != nil {
-		panic(err)
-	}
-
-	// Configure interceptorRegistry to send PLI every 3 seconds
-	interceptorRegistry := &interceptor.Registry{}
-	if err := populateInterceptorRegistry(interceptorRegistry); err != nil {
-		panic(err)
-	}
-
-	// Set up interceptorRegistry and register it with mediaEngine
-	if err := webrtc.RegisterDefaultInterceptors(mediaEngine, interceptorRegistry); err != nil {
-		log.Fatal(err)
-	}
-
-	// Configure settingEngine to use public IP and avoid STUN server
-	// refer: https://pkg.go.dev/github.com/pion/webrtc/v3@v3.1.60#SettingEngine.SetNAT1To1IPs
-	settingEngine := webrtc.SettingEngine{}
-	populateSettingEngine(&settingEngine)
-
-	// Create the API object with configured mediaEngine, interceptorRegistry, settingEngine
-	api = webrtc.NewAPI(
-		webrtc.WithMediaEngine(mediaEngine),
-		webrtc.WithInterceptorRegistry(interceptorRegistry),
-		webrtc.WithSettingEngine(settingEngine),
-	)
-
-	resourceMap = make(map[string]*Resource)
-}
-
-func CleanUp() {
-	resourceMapLock.Lock()
-	defer resourceMapLock.Unlock()
-
-	for _, resource := range resourceMap {
-		resource.Disconnect <- struct{}{}
 	}
 }
