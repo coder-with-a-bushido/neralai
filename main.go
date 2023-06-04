@@ -107,21 +107,21 @@ func startNewStream(w http.ResponseWriter, r *http.Request) {
 
 func stopStream(w http.ResponseWriter, r *http.Request) {
 	resourceId := chi.URLParam(r, "resourceId")
-	resourse := whip.GetResource(resourceId)
-	if resourse == nil {
+	resource := whip.GetResource(resourceId)
+	if resource == nil {
 		writeBadRequest(w, "Invalid Resource ID")
 		return
 	}
 
-	resourse.Disconnect <- struct{}{}
+	resource.Disconnect <- struct{}{}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w)
 }
 
 func serveHLSFiles(w http.ResponseWriter, r *http.Request) {
 	resourceId := chi.URLParam(r, "resourceId")
-	resourse := whip.GetResource(resourceId)
-	if resourse == nil {
+	resource := whip.GetResource(resourceId)
+	if resource == nil {
 		writeBadRequest(w, "Invalid Resource ID")
 		return
 	}
