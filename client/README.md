@@ -2,6 +2,8 @@
 
 A simple <img align="center" height="20" src="./static/neralai.png"> client to demo streaming your camera and viewing that stream in a browser.
 
+![Neralai Client Demo](./static/neralai_demo.gif)
+
 Install dependencies
 
 ```sh
@@ -14,8 +16,10 @@ Run the demo
 npm run dev -- --open
 ```
 
-Built with ❤️ and
+---
+
+Built with 🫶 and
 
 - [Svelte](https://svelte.dev/)
-- [eyevinn's WHIP web client](https://www.npmjs.com/package/@eyevinn/whip-web-client)
-- [video-dev's HLS.js](https://hlsjs-dev.video-dev.org/)
+- [WHIP web client](https://www.npmjs.com/package/@eyevinn/whip-web-client)
+- [HLS.js](https://hlsjs-dev.video-dev.org/)
