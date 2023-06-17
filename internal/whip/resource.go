@@ -41,7 +41,7 @@ func GetResource(resourceId string) *Resource {
 	return nil
 }
 
-func addNewResource(resource *Resource) string {
+func AddNewResource(resource *Resource) string {
 	resourceMapLock.Lock()
 	defer resourceMapLock.Unlock()
 
@@ -54,7 +54,7 @@ func addNewResource(resource *Resource) string {
 	return resource.id
 }
 
-func removeResource(resourceId string) {
+func RemoveResource(resourceId string) {
 	resourceMapLock.Lock()
 	defer resourceMapLock.Unlock()
 
@@ -69,5 +69,4 @@ func (resource *Resource) closeOnCtxCancel() {
 	if err := resource.peerConnection.Close(); err != nil {
 		log.Println(err)
 	}
-	removeResource(resource.id)
 }

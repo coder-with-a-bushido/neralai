@@ -15,7 +15,6 @@ func GetOutputDir() string {
 			panic(err)
 		}
 		outputDir = fmt.Sprintf("%s/output", dir)
-
 	}
 	return outputDir
 }
@@ -38,9 +37,9 @@ func DeleteDir(path string) error {
 	return nil
 }
 
-// Create a new file and return it.
-func NewFile(path string) (*os.File, error) {
-	file, err := os.Create(path)
+// Opens a file or creates if it doesnt exist and return it.
+func OpenFile(path string) (*os.File, error) {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +47,8 @@ func NewFile(path string) (*os.File, error) {
 }
 
 // Create new file and write the `content` to it.
-func CreateAndWriteToFile(path, content string) error {
-	file, err := NewFile(path)
+func WriteToFile(path, content string) error {
+	file, err := OpenFile(path)
 	if err != nil {
 		return err
 	}

@@ -85,4 +85,6 @@ func (ffmpeg *ffmpeg) endProcess() {
 		syscall.Kill(-ffmpeg.cmd.Process.Pid, syscall.SIGKILL)
 	}
 	ffmpeg.logFile.Close()
+	// Signal the end of playlist
+	utils.WriteToFile(ffmpeg.hlsPlaylistFilePath, "#EXT-X-ENDLIST")
 }

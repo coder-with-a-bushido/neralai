@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/coder-with-a-bushido/neralai/internal/utils"
 	"github.com/coder-with-a-bushido/neralai/internal/whip"
@@ -64,6 +65,10 @@ func NewStreamFromWHIPResource(ctx context.Context, resourceId string) {
 			case <-ctx.Done():
 				rtpForward.endRTPForward()
 				ffmpeg.endProcess()
+				// wait for 40s and then clean output dir & remove resource
+				<-time.After(40 * time.Second)
+				utils.DeleteDir(resourceDirPath)
+				whip.RemoveResource(resourceId)
 				return
 			}
 		}

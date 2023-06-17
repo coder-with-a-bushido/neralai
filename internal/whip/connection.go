@@ -117,7 +117,7 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 	// When ICE gathering is complete,
 	<-iceGatherComplete
 	// create a new WHIP `Resource` for this connection
-	resourceId = addNewResource(
+	resourceId = AddNewResource(
 		&Resource{
 			peerConnection: peerConnection,
 			ctx:            ctx,
