@@ -1,5 +1,4 @@
 .vscode/
 output/
-ffmpeg_log.txt
 .DS_Store
 __debug_bin

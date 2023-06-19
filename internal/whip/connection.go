@@ -16,7 +16,7 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 	config := webrtc.Configuration{}
 	peerConnection, err := api.NewPeerConnection(config)
 	if err != nil {
-		return "", "", nil
+		return "", "", err
 	}
 
 	// Make answer SDP use "recvonly" attribute
@@ -24,12 +24,12 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 	if _, err = peerConnection.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo, webrtc.RTPTransceiverInit{
 		Direction: webrtc.RTPTransceiverDirectionRecvonly,
 	}); err != nil {
-		return "", "", nil
+		return "", "", err
 	}
 	if _, err = peerConnection.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio, webrtc.RTPTransceiverInit{
 		Direction: webrtc.RTPTransceiverDirectionRecvonly,
 	}); err != nil {
-		return "", "", nil
+		return "", "", err
 	}
 
 	// Channels to forward the audio and video RTP packets
@@ -84,7 +84,7 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 			SDP:  string(offerSDPStr),
 		},
 	); err != nil {
-		return "", "", nil
+		return "", "", err
 	}
 
 	// Gather all ICE candidates beforehand,
@@ -117,7 +117,7 @@ func NewConnection(ctx context.Context, offerSDPStr string, disconnect chan<- st
 	// When ICE gathering is complete,
 	<-iceGatherComplete
 	// create a new WHIP `Resource` for this connection
-	resourceId = addNewResource(
+	resourceId = AddNewResource(
 		&Resource{
 			peerConnection: peerConnection,
 			ctx:            ctx,

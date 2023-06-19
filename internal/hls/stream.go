@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/coder-with-a-bushido/neralai/internal/utils"
 	"github.com/coder-with-a-bushido/neralai/internal/whip"
@@ -17,8 +19,15 @@ func NewStreamFromWHIPResource(ctx context.Context, resourceId string) {
 		panic(errors.New("Invalid Resource Id"))
 	}
 
+	// Output file paths
+	resourceDirPath := fmt.Sprintf("%s/%s", utils.GetOutputDir(), resourceId)
+	sdpFilePath := resourceDirPath + "/connection.sdp"
+	ffmpegLogFilePath := resourceDirPath + "/ffmpeg_log.txt"
+	hlsDir := resourceDirPath + "/hls"
+	hlsPlaylistFilePath := hlsDir + "/stream.m3u8"
+
 	// Create output directory for that resource.
-	if err := utils.CreateDir(fmt.Sprintf("%s/%s/hls", utils.GetOutputDir(), resourceId)); err != nil {
+	if err := utils.CreateDir(hlsDir); err != nil {
 		panic(err)
 	}
 
@@ -28,12 +37,21 @@ func NewStreamFromWHIPResource(ctx context.Context, resourceId string) {
 		rtpForward.audio.port,
 		rtpForward.video.port,
 	)
-	if err := utils.CreateAndWriteToFile(fmt.Sprintf("%s/%s/connection.sdp", utils.GetOutputDir(), resourceId), sdpContent); err != nil {
+	if err := utils.WriteToFile(sdpFilePath, sdpContent); err != nil {
 		panic(err)
 	}
 
+	ffmpeg := &ffmpeg{
+		sdpFilePath:         sdpFilePath,
+		ffmpegLogFilePath:   ffmpegLogFilePath,
+		hlsPlaylistFilePath: hlsPlaylistFilePath,
+	}
 	// Start ffmpeg processing for the WHIP resource
-	go startFFmpeg(ctx, resourceId, resource)
+	err := ffmpeg.startProcess(ctx, resource)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Starting HLS output for resource: %s", resourceId)
 
 	// Write audio, video RTP packets from WHIP to `rtpForward``
 	go func() {
@@ -46,7 +64,11 @@ func NewStreamFromWHIPResource(ctx context.Context, resourceId string) {
 				rtpForward.writeVideo(videoPacket)
 			case <-ctx.Done():
 				rtpForward.endRTPForward()
-				utils.DeleteDir(fmt.Sprintf("%s/%s", utils.GetOutputDir(), resourceId))
+				ffmpeg.endProcess()
+				// wait for 40s and then clean output dir & remove resource
+				<-time.After(40 * time.Second)
+				utils.DeleteDir(resourceDirPath)
+				whip.RemoveResource(resourceId)
 				return
 			}
 		}
